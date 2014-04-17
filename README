@@ -1,0 +1,16 @@
+This program is a utility for BABAR CP/CPT analysis. It calculates event
+weights in Monte Carlo events so that the weighted event distribution follows
+the specified parameters that describes CP/CPT violation processes in
+B0-B0bar mixing.
+
+This program takes several arguments, including input root file name,
+output file name, and CPT parameters. For detail, see
+
+% dilCPTwgt -h
+
+
+How to Compile:
+
+
+How to run:
+
