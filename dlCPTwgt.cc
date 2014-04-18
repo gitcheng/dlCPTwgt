@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
   string commonpath = parse_opts("-c", argc, argv, "");
   string inname = parse_opts("-i", argc, argv);
   string treename = parse_opts("-t", argc, argv, "tr");
-  string outname = parse_opts("-t", argc, argv);
+  string outname = parse_opts("-o", argc, argv);
   double qop2 = atof(parse_opts("--gop2", argc, argv, "1.0").c_str());
   double dGoG = atof(parse_opts("--dgog", argc, argv, "0.0").c_str());
   double rez = atof(parse_opts("--rez", argc, argv, "0.0").c_str());
@@ -112,18 +112,38 @@ int main(int argc, char *argv[]) {
   ch->GetListOfFiles()->Print();
   long int nentries =  ch->GetEntries();
   cout << "Total entries: " << nentries << endl;
-
   InTuple T(ch);
+
+  // create output
+  float wgt;
+  int upperID, lowerID;
+  TFile *of(0);
+  TTree *ot(0);
+  of = new TFile(outname.c_str(), "RECREATE");
+  ot = new TTree("W", "Event weights");
+  ot->Branch("upperID", &upperID, "upperID/I");
+  ot->Branch("lowerID", &lowerID, "lowerID/I");
+  ot->Branch("wgt", &wgt, "wgt/F");
 
   for (long j = 0; j < nentries && j<50; j++) {
     long ientry = T.LoadTree(j);
     if (ientry < 0) break;
     T.GetEntry(j);
-    cout << T.nmc << endl;
+    int q1 = T.mcLund[T.B1mc] > 0 ? 1 : -1;
+    int q2 = T.mcLund[T.B2mc] > 0 ? 1 : -1;
 
+    double pdf0 = decay_rate(q1, q2, T.trueDt, 1, 0, 0, 0);
+    double pdf  = decay_rate(q1, q2, T.trueDt, qop2, dG, rez, imz);
 
+    upperID = T.upperID;
+    lowerID = T.lowerID;
+    wgt = pdf0 / pdf;
+    ot->Fill();
   }
-
+  if (of) {
+    ot->Write();
+    of->Close();
+  }
 
 }
 #endif
