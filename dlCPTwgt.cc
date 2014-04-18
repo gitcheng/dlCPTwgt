@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <math.h>
+#include "TH1D.h"
 
 #define InTuple_cxx
 #include "InTuple.h"
@@ -115,7 +116,7 @@ int main(int argc, char *argv[]) {
   InTuple T(ch);
 
   // create output
-  float wgt;
+  double wgt;
   int upperID, lowerID;
   TFile *of(0);
   TTree *ot(0);
@@ -123,12 +124,23 @@ int main(int argc, char *argv[]) {
   ot = new TTree("W", "Event weights");
   ot->Branch("upperID", &upperID, "upperID/I");
   ot->Branch("lowerID", &lowerID, "lowerID/I");
-  ot->Branch("wgt", &wgt, "wgt/F");
+  ot->Branch("wgt", &wgt, "wgt/D");
+  // diagnostic histograms
+  const int nbins = 100;
+  const double dtlo(-20.0), dthi(20.0);
+  TH1D *hpp = new TH1D("hpp", "N++ Delta t distribution", 100, dtlo, dthi);
+  TH1D *hnn = new TH1D("hnn", "N-- Delta t distribution", 100, dtlo, dthi);
+  TH1D *hpn = new TH1D("hpn", "N+- Delta t distribution", 100, dtlo, dthi);
+  TH1D *hnp = new TH1D("hnp", "N-+ Delta t distribution", 100, dtlo, dthi);
 
-  for (long j = 0; j < nentries && j<50; j++) {
+  for (long j = 0; j < nentries; j++) {
     long ientry = T.LoadTree(j);
     if (ientry < 0) break;
     T.GetEntry(j);
+    if ((j+1) % 100000 == 0) {
+      cout << "processing event # " << j+1 << endl;
+    }
+    
     int q1 = T.mcLund[T.B1mc] > 0 ? 1 : -1;
     int q2 = T.mcLund[T.B2mc] > 0 ? 1 : -1;
 
@@ -139,9 +151,19 @@ int main(int argc, char *argv[]) {
     lowerID = T.lowerID;
     wgt = pdf0 / pdf;
     ot->Fill();
+
+    if (q1 > 0 && q2 > 0) hpp->Fill(T.trueDt, wgt);
+    else if (q1 > 0 && q2 < 0) hpn->Fill(T.trueDt, wgt);
+    else if (q1 < 0 && q2 > 0) hnp->Fill(T.trueDt, wgt);
+    else if (q1 < 0 && q2 < 0) hnn->Fill(T.trueDt, wgt);
+
   }
   if (of) {
     ot->Write();
+    hpp->Write();
+    hpn->Write();
+    hnp->Write();
+    hnn->Write();
     of->Close();
   }
 

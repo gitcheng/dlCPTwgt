@@ -12,5 +12,8 @@ output file name, and CPT parameters. For detail, see
 How to Compile:
 
 
-How to run:
+- How to run:
+
+  source setup.csh
+  bin/dlCPTwgt -i /nfs/farm/babar/AWG131/TDBC/tomo/reduced_ntuples/reduced_ntuples_SP1237/SJM_SP1237_Run1_R26b_reduced.root -o test1.root --gop2 1.001 --rez 0.003
 
