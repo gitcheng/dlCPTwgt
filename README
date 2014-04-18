@@ -1,19 +1,77 @@
-This program is a utility for BABAR CP/CPT analysis. It calculates event
-weights in Monte Carlo events so that the weighted event distribution follows
-the specified parameters that describes CP/CPT violation processes in
-B0-B0bar mixing.
+This program is a utility for BABAR CP/CPT analysis. It runs in BABAR
+(http://www.slac.stanford.edu/BFROOT/) software environment.
+It calculates event weights in Monte Carlo events so that the weighted event
+distribution follows the specified parameters that describes CP/CPT violation
+processes in B0-B0bar mixing.
+
+- INSTALL
+
+The code is hosted in github.com. To clone it to your local computer, do
+
+% git clone git@github.com:gitcheng/dlCPTwgt.git
+
+How to Compile:
+
+% cd dlCPTwgt
+
+Set up environment. Do one of the following.
+
+% source setup.sh      # (bash)
+% source setup.csh     # (tcsh)
+
+Build
+
+% ./build.sh
+
+The executable will be in ./bin subdirectory.
+
+- How to run:
+
+Set up environment. Need to do this to make sure the ROOT version
+is consistent with the build. Do one of the following.
+
+% source setup.sh      # (bash)
+% source setup.csh     # (tcsh)
 
 This program takes several arguments, including input root file name,
 output file name, and CPT parameters. For detail, see
 
-% dilCPTwgt -h
+% bin/dilCPTwgt -h
 
+Example:
 
-How to Compile:
+% bin/dlCPTwgt -i /path/to/ntuples/sp1237_reduced.root -o test1.root --gop2 1.01 --rez 0.003
 
+- Content
 
-- How to run:
+The resulting root file contains a TTree "W", and histograms of Delta t in
+different charge combinations. The TTree contains event ID branches and
+event weight.
 
-  source setup.csh
-  bin/dlCPTwgt -i /nfs/farm/babar/AWG131/TDBC/tomo/reduced_ntuples/reduced_ntuples_SP1237/SJM_SP1237_Run1_R26b_reduced.root -o test1.root --gop2 1.001 --rez 0.003
-
+Attaching file test1.root as _file0...
+root [1] .ls
+TFile**		test1.root	
+ TFile*		test1.root	
+  KEY: TTree	W;1	Event weights
+  KEY: TH1D	hpp;1	N++ Delta t distribution
+  KEY: TH1D	hpn;1	N+- Delta t distribution
+  KEY: TH1D	hnp;1	N-+ Delta t distribution
+  KEY: TH1D	hnn;1	N-- Delta t distribution
+root [2] W->Print()
+******************************************************************************
+*Tree    :W         : Event weights                                          *
+*Entries :  4399091 : Total =        70583134 bytes  File  Size =   19295284 *
+*        :          : Tree compression factor =   3.66                       *
+******************************************************************************
+*Br    0 :upperID   : upperID/I                                              *
+*Entries :  4399091 : Total  Size=   17646898 bytes  File Size  =     154475 *
+*Baskets :      552 : Basket Size=      32000 bytes  Compression= 114.16     *
+*............................................................................*
+*Br    1 :lowerID   : lowerID/I                                              *
+*Entries :  4399091 : Total  Size=   17646898 bytes  File Size  =   16580704 *
+*Baskets :      552 : Basket Size=      32000 bytes  Compression=   1.06     *
+*............................................................................*
+*Br    2 :wgt       : wgt/D                                                  *
+*Entries :  4399091 : Total  Size=   35288983 bytes  File Size  =    2541007 *
+*Baskets :     1103 : Basket Size=      32000 bytes  Compression=  13.88     *
+*............................................................................*
