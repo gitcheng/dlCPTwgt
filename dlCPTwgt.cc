@@ -3,7 +3,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <math.h>
+
+#define InTuple_cxx
 #include "InTuple.h"
+
+// Constants in Monte Carlo
+#define DeltaM 0.489    // unit is ps^{-1}
+#define cTau 0.462      // B0 lifetime c*tau in mm
+#define cLight 0.299792458 // speed of light mm/ps 
+#define Gamma_d cLight/cTau  // Decay rate Gamma_d = 1/tau
+
 
 using namespace std;
 
@@ -42,6 +52,30 @@ string parse_opts(string opt, int argc, char *argv[], string default_value = "")
   return default_value;
 }
 
+// decay rate, without the exponential factor
+double decay_rate(int q1, int q2, double dt, double qop2 = 1,
+		  double dG = 0, double rez = 0, double imz = 0) {
+
+  double fcom = 1;
+  // coefficients of cosh, cos, sinh, sin terms
+  double fcosh(0.5), fcos(-0.5), fsinh(0.0), fsin(0.0);
+ 
+  if (q1 == q2) {
+    // |1-z^2|
+    double omz2 = sqrt((1-rez*rez+imz*imz)*(1-rez*rez+imz*imz) + 4*rez*rez*imz*imz);
+    if (q1 > 0) fcom = 1.0/qop2 * omz2;
+    else        fcom = qop2 * omz2;
+  } else {
+    fcosh = 0.5 * (1 + rez*rez + imz*imz);
+    fcos =  0.5 * (1 - rez*rez - imz*imz);
+    fsinh = -rez;
+    fsin  = +imz;
+  }
+  
+  return fcom * (fcosh * cosh(dG*dt/2) + fcos * cos(DeltaM*dt)
+		 + fsinh * sinh(dG*dt/2) + fsin * sin(DeltaM*dt));
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -56,7 +90,8 @@ int main(int argc, char *argv[]) {
   double dGoG = atof(parse_opts("--dgog", argc, argv, "0.0").c_str());
   double rez = atof(parse_opts("--rez", argc, argv, "0.0").c_str());
   double imz = atof(parse_opts("--imz", argc, argv, "0.0").c_str());
-  
+  double dG = dGoG * Gamma_d;
+
   if (commonpath.length() > 0 && commonpath[commonpath.length()-1] != '/') {
     commonpath = commonpath + "/";
   }
@@ -72,11 +107,22 @@ int main(int argc, char *argv[]) {
 
 
   // Load input TTree
-  TChain *T = new TChain(treename.c_str());
-  T->Add(inname.c_str());
-  T->GetListOfFiles()->Print();
-  long int nentries =  T->GetEntries();
+  TChain *ch = new TChain(treename.c_str());
+  ch->Add(inname.c_str());
+  ch->GetListOfFiles()->Print();
+  long int nentries =  ch->GetEntries();
   cout << "Total entries: " << nentries << endl;
+
+  InTuple T(ch);
+
+  for (long j = 0; j < nentries && j<50; j++) {
+    long ientry = T.LoadTree(j);
+    if (ientry < 0) break;
+    T.GetEntry(j);
+    cout << T.nmc << endl;
+
+
+  }
 
 
 }
