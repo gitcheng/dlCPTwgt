@@ -4,7 +4,10 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <math.h>
+#include <map>
+#include <set>
 #include "TH1D.h"
+#include "TNamed.h"
 
 #define InTuple_cxx
 #include "InTuple.h"
@@ -46,12 +49,49 @@ bool find_opt(string opt, int argc, char *argv[]) {
 }
 
 // Return the value following the option specified by the argument opt.
-string parse_opts(string opt, int argc, char *argv[], string default_value = "") {
-  for (int i = 1; i < argc; i++) {
-    if (opt == argv[i]) return argv[i+1];
+// string parse_opts(string opt, int argc, char *argv[], string default_value = "") {
+//   for (int i = 1; i < argc; i++) {
+//     if (opt == argv[i]) return argv[i+1];
+//   }
+//   return default_value;
+// }
+
+map<string, string> parse_opts(int argc, char *argv[]) {
+  set<string> allowed;
+  allowed.insert("-h");
+  allowed.insert("--help");
+  allowed.insert("-c");
+  allowed.insert("-t");
+  allowed.insert("-i");
+  allowed.insert("-o");
+  allowed.insert("--qop2");
+  allowed.insert("--dgog");
+  allowed.insert("--rez");
+  allowed.insert("--imz");
+  allowed.insert("-A");
+
+  map<string, string> opts;
+  int i = 1;
+  while (i < argc) {
+    if (argv[i][0] == '-') {
+      if (allowed.find(argv[i]) == allowed.end() ) {
+	cout << "Error, unknown option " << argv[i] << endl;
+	abort();
+      }
+      opts[argv[i]] = argv[i+1];
+      i++;
+    }
+    i++;
   }
-  return default_value;
+  return opts;
 }
+// Get option values
+string get_opt(map<string, string>& opts, string key, string default_value="") {
+  if (opts.find(key) == opts.end()) return default_value;
+  return opts[key];
+}
+
+
 
 // decay rate, without the exponential factor
 double decay_rate(int q1, int q2, double dt, double qop2 = 1,
@@ -78,19 +118,21 @@ double decay_rate(int q1, int q2, double dt, double qop2 = 1,
 }
 
 
+//==============================================================
 int main(int argc, char *argv[]) {
 
   if (argc == 1 || find_opt("-h", argc, argv) || find_opt("--help", argc, argv))
     return print_message();
 
-  string commonpath = parse_opts("-c", argc, argv, "");
-  string inname = parse_opts("-i", argc, argv);
-  string treename = parse_opts("-t", argc, argv, "tr");
-  string outname = parse_opts("-o", argc, argv);
-  double qop2 = atof(parse_opts("--gop2", argc, argv, "1.0").c_str());
-  double dGoG = atof(parse_opts("--dgog", argc, argv, "0.0").c_str());
-  double rez = atof(parse_opts("--rez", argc, argv, "0.0").c_str());
-  double imz = atof(parse_opts("--imz", argc, argv, "0.0").c_str());
+  map<string, string> opts = parse_opts(argc, argv);
+  string commonpath = get_opt(opts, "-c", "");
+  string inname = get_opt(opts, "-i", "");
+  string treename = get_opt(opts, "-t", "tr");
+  string outname = get_opt(opts, "-o", "");
+  double qop2 = atof(get_opt(opts, "--qop2", "1.0").c_str());
+  double dGoG = atof(get_opt(opts, "--dgog", "0.0").c_str());
+  double rez = atof(get_opt(opts, "--rez", "0.0").c_str());
+  double imz = atof(get_opt(opts, "--imz", "0.0").c_str());
   double dG = dGoG * Gamma_d;
 
   if (commonpath.length() > 0 && commonpath[commonpath.length()-1] != '/') {
@@ -106,7 +148,6 @@ int main(int argc, char *argv[]) {
        << "Parameters (|q/p|^2, DeltaGamma/Gamma, Re(z), Im(z)) = "
        << qop2 << ", " << dGoG << ", " << rez << ", " << imz << endl << endl;
 
-
   // Load input TTree
   TChain *ch = new TChain(treename.c_str());
   ch->Add(inname.c_str());
@@ -116,11 +157,18 @@ int main(int argc, char *argv[]) {
   InTuple T(ch);
 
   // create output
-  double wgt;
+  double wgt(0), maxwgt(0);
   int upperID, lowerID;
   TFile *of(0);
   TTree *ot(0);
+  // Open output file
   of = new TFile(outname.c_str(), "RECREATE");
+  // Build information of this job
+  TNamed *info = new TNamed("info", "");
+  TString infostring = Form("In: %s;  |q/p|^2= %f; DG/G= %f; z= %f + %f i",
+			    inname.c_str(), qop2, dGoG, rez, imz);
+  info->SetTitle(infostring);
+  // Output TTree
   ot = new TTree("W", "Event weights");
   ot->Branch("upperID", &upperID, "upperID/I");
   ot->Branch("lowerID", &lowerID, "lowerID/I");
@@ -149,7 +197,8 @@ int main(int argc, char *argv[]) {
 
     upperID = T.upperID;
     lowerID = T.lowerID;
-    wgt = pdf0 / pdf;
+    wgt = pdf / pdf0;
+    if (maxwgt < wgt) maxwgt = wgt;
     ot->Fill();
 
     if (q1 > 0 && q2 > 0) hpp->Fill(T.trueDt, wgt);
@@ -158,7 +207,16 @@ int main(int argc, char *argv[]) {
     else if (q1 < 0 && q2 < 0) hnn->Fill(T.trueDt, wgt);
 
   }
+ 
+  cout << "=== Summary ===" << endl;
+  hpp->Print();
+  hnn->Print();
+  hpn->Print();
+  hnp->Print();
+  cout << "  Max weight : " << maxwgt << endl;
+
   if (of) {
+    info->Write();
     ot->Write();
     hpp->Write();
     hpn->Write();

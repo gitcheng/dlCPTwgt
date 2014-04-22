@@ -40,7 +40,7 @@ output file name, and CPT parameters. For detail, see
 
 Example:
 
-% bin/dlCPTwgt -i /path/to/ntuples/sp1237_reduced.root -o test1.root --gop2 1.01 --rez 0.003
+% bin/dlCPTwgt -i /path/to/ntuples/sp1237_reduced.root -o test1.root --qop2 1.01 --rez 0.003
 
 - Content
 
@@ -50,8 +50,9 @@ event weight.
 
 Attaching file test1.root as _file0...
 root [1] .ls
-TFile**		test1.root	
- TFile*		test1.root	
+TFile**		test2.root	
+ TFile*				test2.root	
+  KEY: TNamed			info;1		In: /nfs/farm/babar/AWG131/TDBC/tomo/reduced_ntuples/reduced_ntuples_SP1237/SJM_SP1237_Run1_R26b_reduced.root;  |q/p|^2= 1.010000; DG/G= 0.000000; z= 0.003000 + 0.000000 i
   KEY: TTree	W;1	Event weights
   KEY: TH1D	hpp;1	N++ Delta t distribution
   KEY: TH1D	hpn;1	N+- Delta t distribution
